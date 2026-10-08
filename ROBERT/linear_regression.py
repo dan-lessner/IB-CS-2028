@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
-
-points_x = [1,2,3,4,5,6,7,8,9,10]
-points_y = [35,40,44,53,58,64,70,72,79,85]
+points_x = list(range(1, 21))
+points_y = [96, 100, 85, 94, 78, 85, 65, 75, 63, 72,
+            52, 58, 42, 54, 37, 44, 27, 34, 24, 29]
 error_list = []
 # initialize the learning rate
 learning_rate = 0.01
@@ -19,7 +19,7 @@ def show_line(points_x, points_y, m, b):
     plt.cla()  # clear the previous drawing
     plt.scatter(points_x, points_y, label="Actual points")
     plt.plot(points_x, predicted_y, color="red", label="Current line")
-    plt.xlim(0, 11)
+    plt.xlim(0, 25)
     plt.ylim(0, 100)
     plt.xlabel("x")
     plt.ylabel("y")
@@ -61,7 +61,7 @@ def linear_regression(points_x, points_y, learning_rate):
     # try again
 
 def linear_adjustment(b, m, points_x, points_y, learning_rate):
-    for i in range(100000):
+    for i in range(100000000):
         error = error_calculation(b, m, points_x, points_y)
         error_list.append(error)
         b_old = b
