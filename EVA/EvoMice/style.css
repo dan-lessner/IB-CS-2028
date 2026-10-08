@@ -1,0 +1,471 @@
+/* EvoMice — základní vzhled stránky */
+
+/* --- Layout: CSS Grid (spec 12.1, přestavěno pro responzivní čtverec 14.2) -
+   Grid místo flexboxu ze stejného důvodu jako v12.1: každá úroveň dostane
+   explicitní řádky/sloupce s pevnou/`1fr` výškou, takže `min-height: 0` na
+   vnořených scroll kontejnerech má vždycky jasně dané "od čeho" omezovat.
+
+   Landscape vs. portrait (spec 14.2 — plocha má dostat co největší čtverec
+   z dostupného prostoru, layout se má přizpůsobit i za běhu při resize):
+   na šířku (landscape) je `main` i `#simulation-wrapper` dvousloupcové a
+   stránka sama nescroluje (rolují jen vnitřní panely nezávisle); na výšku
+   (portrait, typicky mobil) se všechno zarovná do jednoho sloupce pod sebe
+   a roluje se přirozeně celá stránka — vnořený nezávislý scroll dvou/tří
+   panelů najednou by na malém mobilním displeji dával horší UX než jedno
+   přirozené rolování. */
+html, body {
+  height: 100%;
+}
+
+@media (orientation: portrait) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #1e1e24;
+  color: #e8e8ec;
+  display: grid;
+  /* header podle obsahu, main vyplní zbytek (patička zrušena, spec 13.3). */
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+@media (orientation: portrait) {
+  body {
+    overflow: visible;
+  }
+}
+
+header {
+  padding: 1rem 1.5rem 0.5rem 1.5rem;
+  position: relative;
+}
+
+#lang-switcher {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+}
+
+#lang-switcher button {
+  background: #26262e;
+  color: #e8e8ec;
+  border: 1px solid #3a3a44;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  margin-left: 0.4rem;
+  cursor: pointer;
+}
+
+#lang-switcher button[aria-pressed="true"] {
+  background: #3a3a44;
+  font-weight: bold;
+  border-color: #6a6a78;
+}
+
+header h1 {
+  margin: 0;
+}
+
+header .subtitle {
+  margin: 0.25rem 0 0 0;
+  color: #a0a0ac;
+  font-size: 0.95rem;
+}
+
+main {
+  display: grid;
+  /* Výchozí (portrait/mobil): jeden sloupec, vše pod sebou, stránka roluje
+     přirozeně celá (viz body/html výš). Landscape (víc šířky než výšky)
+     přepne na dva sloupce beze scrollu stránky — viz media query níže. */
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  min-height: 0;
+}
+
+@media (orientation: landscape) {
+  main {
+    /* Simulace (plocha + prostřední pruh) dostane zbylou šířku, panel
+       nastavení pevných 300px. min-height: 0, ať mají potomci s vlastním
+       scrollem (#controls, #middle-panel) od čeho omezovat svou výšku —
+       jinak by se grid řádek prostě zvětšil podle obsahu (viz historie
+       v2.5/v3, spec 12.1). */
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 1.5rem;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* simulation-wrapper drží plochu i prostřední pruh pohromadě (spec 14.2) —
+   i jako jeden požádaný element Fullscreen API (viz main.js). Portrait:
+   sloupec (plocha nahoře, prostřední pruh pod ní). Landscape: dva sloupce
+   vedle sebe, plocha první — dostane zbylou šířku/výšku jako čtverec. */
+#simulation-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+@media (orientation: landscape) {
+  #simulation-wrapper {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* Fullscreen (spec 10.6, přestavěno pro 14.2): #simulation-wrapper (plocha
+   + prostřední pruh) je teď požádaný element Fullscreen API, ne holé
+   #canvas-area — ať uživatel má ve fullscreenu pořád ovládání a graf, jen
+   bez panelu nastavení (spec 10.6: "jen plocha + informace pod ní").
+   Stav se zrcadlí do třídy .is-fullscreen (viz isFullscreenActive() v
+   main.js), ne na pseudo-třídu `:fullscreen` přímo — stejný důvod jako
+   dřív (ověřitelnost bez skutečného uživatelského gesta). */
+#simulation-wrapper.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #1e1e24;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+/* Plocha (Petriho miska) — spec 14.2: co největší čtverec z dostupného
+   místa. #canvas-area samo o sobě nemá pevnou velikost (dostane ji grid
+   sloupcem/řádkem výš), jen vycentruje #canvas-container uvnitř sebe —
+   skutečnou stranu čtverce (šířku i výšku canvasu) dopočítává JS
+   (updateCanvasSize() v main.js) z toho, kolik místa #canvas-area reálně
+   má. `overflow: auto`: při zoomu > 1 je #canvas-container větší než
+   #canvas-area, což samo vyvolá posuvníky pro výřez (spec 14.2). */
+#canvas-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid #3a3a44;
+  background: #101014;
+}
+
+/* Portrait nemá od `main` dolů žádné pevné omezení výšky (stránka roluje
+   přirozeně, viz komentář nahoře souboru) — bez explicitní výšky by tu ale
+   vznikl kruhový problém (JS počítá stranu čtverce z clientHeight, jenže
+   clientHeight by byl určený samotným obsahem, tj. canvasem, jehož
+   velikost se z něj zrovna snažíme spočítat). `aspect-ratio: 1` dá boxu
+   výšku odvozenou přímo z jeho (na obsahu nezávislé) šířky — čtverec navíc
+   vyjde přesně na míru dostupné šířky bez zbytečné prázdné rezervy (dřív
+   zkoušené pevné `55vh` na hodně "vysokých" portrait poměrech zbytečně
+   zvětšovalo box nad skutečnou velikost čtverce, ověřeno screenshotem). */
+@media (orientation: portrait) {
+  #canvas-area {
+    width: 100%;
+    aspect-ratio: 1;
+  }
+}
+
+#canvas-container {
+  display: inline-block;
+}
+
+#sim-canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* Prostřední pruh (spec 14.2): ovládání běhu, zoom, fullscreen, kurzor,
+   graf fitness — mezi plochou a panelem nastavení, nikdy přes ně. */
+#middle-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* Flex items mají výchozí `min-width: auto`, tj. nesmí se zúžit pod
+   min-content šířku svého obsahu — canvas grafu fitness má intrinzitní
+   šířku 320 px (HTML atribut), což je v úzkém (280px) pruhu víc, než se
+   vejde, a bez tohohle přepsání by to vynutilo vodorovný scroll celého
+   #middle-panel (ověřeno screenshotem, spec 14.2). `max-width: 100%` na
+   samotném canvasu (viz #fitness-chart-canvas) pak už může zmenšit i pod
+   320px. */
+#middle-panel > * {
+  min-width: 0;
+}
+
+@media (orientation: landscape) {
+  #middle-panel {
+    overflow-y: auto;
+  }
+}
+
+/* #run-controls žije teď v úzkém (280px, spec 14.2) prostředním pruhu, ne
+   v širokém toolbaru nad celou plochou jako dřív (13.2). Flexbox pro tenhle
+   účel zkoušený nejdřív (vodorovné "čipy" se zalamováním) pořád přetékal —
+   dlouhý text tlačítka ("Nová náhodná populace (reset)") ani label slideru
+   se v úzkém flex itemu nezalamoval (min-content vs. flex-basis, ověřeno
+   screenshotem + debug výpisem scrollWidth, viz PROGRESS.md 14.2). Funkční
+   řešení je stejný osvědčený vzorec jako `#controls label` níže: obyčejné
+   blokové prvky, kde text běžně zalamuje řádek jako normální dokumentový
+   tok, a range/number vstup jde na vlastní řádek přes celou šířku. */
+#run-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+#run-controls .btn-with-help {
+  display: block;
+}
+
+#run-controls .btn-with-help button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+/* Zoom patří k zobrazení, ne k nastavení simulace (spec 12.3) — proto žije
+   v #run-controls vedle fullscreen tlačítka místo ve fieldsetu nastavení. */
+#zoom-control,
+#speed-control,
+#seed-control {
+  display: block;
+  font-size: 0.9rem;
+}
+
+#zoom-control input[type="range"],
+#speed-control input[type="range"] {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+#seed-control input[type="number"] {
+  width: 5em;
+}
+
+#controls {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  background: #26262e;
+  border: 1px solid #3a3a44;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+#controls fieldset {
+  border: 2px solid #4a4a58;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem 0.75rem 0.75rem;
+}
+
+#controls legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: bold;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Šipka signalizující sbalitelnost (spec 10.7) — čistě vizuální, klik na ni
+   samotnou funguje stejně jako klik kamkoliv jinam do legendy (mimo tooltip
+   ikonku). Otáčí se podle .collapsed na fieldsetu. */
+#controls legend::before {
+  content: '▾';
+  font-size: 0.7em;
+  color: #a0a0ac;
+}
+
+#controls fieldset.collapsed legend::before {
+  content: '▸';
+}
+
+/* Sbalená sekce: schová všechno kromě legendy samotné (ta zůstává klikatelná
+   pro rozbalení zpět). */
+#controls fieldset.collapsed > *:not(legend) {
+  display: none;
+}
+
+/* Tlačítko + jeho tooltip ikonka pohromadě na jednom řádku (buttony samy
+   o sobě nejsou v <label>, takže je potřeba vlastní obalový prvek). */
+.btn-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+.btn-with-help button {
+  margin: 0;
+}
+
+/* --- Tooltip ikonky ("?" v kroužku) --------------------------------------
+   Čistě CSS bublina: text je v atributu data-tooltip (naplní ho i18n.js,
+   viz applyTooltips()) a zobrazí se přes ::after / content: attr(...).
+   Zobrazení jen na hoveru/focusu SAMOTNÉ ikonky, ne okolního textu — proto
+   je to samostatný prvek, ne title na labelu. */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  border: 1px solid #6a6a78;
+  color: #c8c8d0;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: help;
+  position: relative;
+  user-select: none;
+}
+
+.help-icon:hover,
+.help-icon:focus {
+  outline: none;
+  border-color: #e8b84b;
+  color: #e8b84b;
+}
+
+/* Pozn.: #controls má vlastní overflow-y: auto (viz v2.5, nezávislý scroll
+   panelu nastavení) — bublina tooltipu je součástí DOM toku uvnitř tohohle
+   scrollovaného panelu, takže se u ikonek těsně u horního/dolního okraje
+   viditelné oblasti může useknout. Přijatelný kompromis, oprava (např.
+   "portálování" bubliny mimo scrollovaný kontejner) by vyžadovala JS navíc. */
+.help-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: 135%;
+  transform: translateX(-50%);
+  background: #101014;
+  border: 1px solid #3a3a44;
+  color: #e8e8ec;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  z-index: 20;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.help-icon:hover::after,
+.help-icon:focus::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+#controls label {
+  display: block;
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+#controls input[type="range"] {
+  width: 100%;
+}
+
+#save-link-output {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: #1e1e24;
+  color: #e8e8ec;
+  border: 1px solid #3a3a44;
+  border-radius: 4px;
+  padding: 0.3rem;
+}
+
+#saveload-status-line {
+  font-size: 0.85rem;
+  color: #a0a0ac;
+  margin: 0.5rem 0 0 0;
+  min-height: 1.2em; /* stálá výška, ať se fieldset "neposkakuje" podle toho, jestli je zpráva zrovna zobrazená */
+}
+
+#controls button {
+  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+#stats-line {
+  font-family: monospace;
+  color: #a0a0ac;
+  margin: 0.5rem 0 0 0;
+}
+
+#cursor-position-line {
+  font-family: monospace;
+  color: #a0a0ac;
+  margin: 0.2rem 0 0 0;
+}
+
+#fitness-chart-area {
+  margin-top: 0.75rem;
+}
+
+#fitness-chart-area .chart-title {
+  margin: 0 0 0.25rem 0;
+  color: #a0a0ac;
+  font-size: 0.85rem;
+}
+
+#fitness-chart-canvas {
+  display: block;
+  border: 1px solid #3a3a44;
+  background: #101014;
+  max-width: 100%;
+}
+
+#fitness-chart-area .chart-legend {
+  margin: 0.3rem 0 0 0;
+  font-size: 0.8rem;
+  color: #a0a0ac;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+  margin: 0 0.3rem 0 0.8rem;
+}
+
+.legend-swatch:first-child {
+  margin-left: 0;
+}
+
+.legend-swatch-min {
+  background: #5a8bd6;
+}
+
+.legend-swatch-avg {
+  background: #c77dff;
+}
+
+.legend-swatch-max {
+  background: #ff6f61;
+}

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <title data-i18n="page_title">EvoMice</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <div id="lang-switcher">
+      <button type="button" id="lang-cs-btn">Čeština</button>
+      <button type="button" id="lang-en-btn">English</button>
+    </div>
+    <h1>EvoMice</h1>
+    <p class="subtitle" data-i18n="subtitle"></p>
+  </header>
+
+  <main>
+    <!-- simulation-wrapper drží plochu i prostřední pruh pohromadě jako
+         jeden celek (spec 14.2) — je to i požádaný element Fullscreen API
+         (viz main.js), ať se ve fullscreenu ukáže obojí, ne jen holá
+         plocha. #controls (nastavení) je záměrně mimo, stejně jako dřív. -->
+    <div id="simulation-wrapper">
+      <!-- Plocha (Petriho miska) — jen samotný canvas, žádné ovládání ani
+           informace uvnitř (spec 14.2: co největší čtverec, nic ho nesmí
+           zmenšovat). Zoom (CSS zoom na #canvas-container, viz applyZoom v
+           render.js) roztáhne canvas-container nad rozměr #canvas-area,
+           čímž se tu (overflow: auto) objeví posuvníky pro výřez; tažením
+           pravým tlačítkem myši lze výřez posouvat (panning), viz
+           attachCanvasPanning() v main.js. -->
+      <section id="canvas-area">
+        <div id="canvas-container">
+          <canvas id="sim-canvas"></canvas>
+        </div>
+      </section>
+
+      <!-- Ovládání běhu simulace (start/pauza, krok, reset, seed, rychlost),
+           zoom, fullscreen, souřadnice kurzoru a graf fitness — to všechno
+           žije v prostředním pruhu MEZI plochou a panelem nastavení (spec
+           14.2), ne nad/přes plochu a ne přes nastavení, ať plocha dostane
+           co největší dostupný čtverec. -->
+      <section id="middle-panel">
+        <div id="run-controls">
+          <span class="btn-with-help">
+            <button type="button" id="start-pause-btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="start_pause_btn_tooltip">?</span>
+          </span>
+          <span class="btn-with-help">
+            <button type="button" id="step-btn" data-i18n="step_btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="step_btn_tooltip">?</span>
+          </span>
+          <span class="btn-with-help">
+            <button type="button" id="reset-btn" data-i18n="reset_btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_btn_tooltip">?</span>
+          </span>
+          <!-- Seed patří k resetu (spec 13.10, spec 4 "Inicializace") — reset
+               tlačítko výš vždycky čte aktuální hodnotu tohodle pole, žádné
+               samostatné "nastavit seed" tlačítko navíc není potřeba. -->
+          <label id="seed-control" for="seed-input">
+            <span data-i18n="seed_label"></span>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="seed_label_tooltip">?</span>
+            <input type="number" id="seed-input" value="42" step="1">
+          </label>
+          <label id="speed-control" for="speed-slider">
+            <span data-i18n="speed_label"></span>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="speed_label_tooltip">?</span>
+            <span id="speed-value">2</span>
+            <input type="range" id="speed-slider" min="0" max="30" step="1" value="2">
+          </label>
+
+          <span class="btn-with-help">
+            <button type="button" id="fullscreen-btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="fullscreen_btn_tooltip">?</span>
+          </span>
+          <!-- Zoom patří k zobrazení plochy, ne k nastavení simulace (spec
+               12.3) — proto je tady vedle fullscreen tlačítka, ne ve
+               fieldsetu nastavení. -->
+          <label id="zoom-control" for="zoom-slider">
+            <span data-i18n="zoom_label"></span>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="zoom_label_tooltip">?</span>
+            <input type="range" id="zoom-slider" min="0.5" max="4" step="0.1" value="1">
+          </label>
+        </div>
+
+        <p id="stats-line"></p>
+        <p id="cursor-position-line" data-i18n="cursor_position_none"></p>
+
+        <div id="fitness-chart-area">
+          <p class="chart-title" data-i18n="fitness_chart_title"></p>
+          <canvas id="fitness-chart-canvas" width="320" height="90"></canvas>
+          <p class="chart-legend">
+            <span class="legend-swatch legend-swatch-min"></span><span data-i18n="fitness_chart_legend_min"></span>
+            <span class="legend-swatch legend-swatch-avg"></span><span data-i18n="fitness_chart_legend_avg"></span>
+            <span class="legend-swatch legend-swatch-max"></span><span data-i18n="fitness_chart_legend_max"></span>
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <aside id="controls">
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_population_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_population_legend_tooltip">?</span>
+        </legend>
+        <label for="population-size-slider">
+          <span data-i18n="population_size_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="population_size_label_tooltip">?</span>
+          <span id="population-size-value">80</span>
+          <input type="range" id="population-size-slider" min="1" max="400" step="1" value="80">
+        </label>
+        <label for="grid-size-slider">
+          <span data-i18n="grid_size_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="grid_size_label_tooltip">?</span>
+          <span id="grid-size-value">48</span>
+          <input type="range" id="grid-size-slider" min="8" max="512" step="1" value="48">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_food_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_food_legend_tooltip">?</span>
+        </legend>
+        <label for="food-count-slider">
+          <span data-i18n="food_count_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="food_count_label_tooltip">?</span>
+          <span id="food-count-value">20</span>
+          <input type="range" id="food-count-slider" min="1" max="150" step="1" value="20">
+        </label>
+        <label for="food-capacity-slider">
+          <span data-i18n="food_capacity_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="food_capacity_label_tooltip">?</span>
+          <span id="food-capacity-value">20</span>
+          <input type="range" id="food-capacity-slider" min="1" max="50" step="1" value="20">
+        </label>
+        <label>
+          <input type="radio" name="food-mode" id="food-mode-random" value="random">
+          <span data-i18n="food_mode_random"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="food_mode_random_tooltip">?</span>
+        </label>
+        <!-- Výchozí volba je "ruční kreslení" (spec 13.1) — počáteční krmení
+             ale i tak vznikne náhodným rozhozením (viz resetSimulation() v
+             main.js, parametr forceRandomFoodSeed), jen se to v UI zobrazí
+             jako by uživatel měl zvolený ruční režim. -->
+        <label>
+          <input type="radio" name="food-mode" id="food-mode-manual" value="manual" checked>
+          <span data-i18n="food_mode_manual"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="food_mode_manual_tooltip">?</span>
+        </label>
+        <span class="btn-with-help">
+          <button type="button" id="regenerate-food-btn" data-i18n="regenerate_food_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="regenerate_food_btn_tooltip">?</span>
+        </span>
+        <span class="btn-with-help">
+          <button type="button" id="clear-food-btn" data-i18n="clear_food_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="clear_food_btn_tooltip">?</span>
+        </span>
+        <label>
+          <input type="checkbox" id="food-depletes-checkbox">
+          <span data-i18n="food_depletes_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="food_depletes_label_tooltip">?</span>
+        </label>
+        <label>
+          <input type="checkbox" id="food-replenishes-checkbox">
+          <span data-i18n="food_replenishes_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="food_replenishes_label_tooltip">?</span>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_fitness_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_fitness_legend_tooltip">?</span>
+        </legend>
+        <label for="fitness-type-select">
+          <span data-i18n="fitness_type_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="fitness_type_label_tooltip">?</span>
+          <select id="fitness-type-select">
+            <option value="binary" data-i18n="fitness_binary"></option>
+            <option value="continuous" data-i18n="fitness_continuous"></option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_selection_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_selection_legend_tooltip">?</span>
+        </legend>
+        <label for="selection-method-select">
+          <span data-i18n="selection_method_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="selection_method_label_tooltip">?</span>
+          <select id="selection-method-select">
+            <option value="roulette" data-i18n="selection_roulette"></option>
+            <option value="tournament" data-i18n="selection_tournament"></option>
+          </select>
+        </label>
+        <!-- Vidět jen pro turnajovou selekci (spec 13.8) — jinde nedává
+             smysl, ne jen dočasně jako u spec 13.4, proto se rovnou celá
+             skrývá (viz updateConditionalControlsVisibility() v main.js). -->
+        <label for="tournament-size-slider"
+               data-show-when-select="selection-method-select" data-show-when-value="tournament">
+          <span data-i18n="tournament_size_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="tournament_size_label_tooltip">?</span>
+          <span id="tournament-size-value">3</span>
+          <input type="range" id="tournament-size-slider" min="2" max="10" step="1" value="3">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_crossover_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_crossover_legend_tooltip">?</span>
+        </legend>
+        <label for="crossover-rate-slider">
+          <span data-i18n="crossover_rate_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="crossover_rate_label_tooltip">?</span>
+          <span id="crossover-rate-value">0.8</span>
+          <input type="range" id="crossover-rate-slider" min="0" max="1" step="0.05" value="0.8">
+        </label>
+        <label for="crossover-type-select">
+          <span data-i18n="crossover_type_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="crossover_type_label_tooltip">?</span>
+          <select id="crossover-type-select">
+            <option value="xy-split" data-i18n="crossover_xy_split"></option>
+            <option value="one-point" data-i18n="crossover_one_point"></option>
+            <option value="multi-point" data-i18n="crossover_multi_point"></option>
+            <option value="uniform" data-i18n="crossover_uniform"></option>
+            <option value="line-point" data-i18n="crossover_line_point"></option>
+            <option value="rectangle-point" data-i18n="crossover_rectangle_point"></option>
+          </select>
+        </label>
+        <label for="crossover-points-slider"
+               data-show-when-select="crossover-type-select" data-show-when-value="multi-point">
+          <span data-i18n="crossover_points_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="crossover_points_label_tooltip">?</span>
+          <span id="crossover-points-value">3</span>
+          <input type="range" id="crossover-points-slider" min="2" max="8" step="1" value="3">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_mutation_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_mutation_legend_tooltip">?</span>
+        </legend>
+        <label for="mutation-type-select">
+          <span data-i18n="mutation_type_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="mutation_type_label_tooltip">?</span>
+          <select id="mutation-type-select">
+            <option value="bit-flip" data-i18n="mutation_bit_flip"></option>
+            <option value="geometric-jump" data-i18n="mutation_geometric_jump"></option>
+          </select>
+        </label>
+        <label for="mutation-rate-slider"
+               data-show-when-select="mutation-type-select" data-show-when-value="bit-flip">
+          <span data-i18n="mutation_rate_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="mutation_rate_label_tooltip">?</span>
+          <span id="mutation-rate-value">0.02</span>
+          <input type="range" id="mutation-rate-slider" min="0" max="0.3" step="0.005" value="0.02">
+        </label>
+        <label for="mutation-jump-radius-slider"
+               data-show-when-select="mutation-type-select" data-show-when-value="geometric-jump">
+          <span data-i18n="mutation_jump_radius_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="mutation_jump_radius_label_tooltip">?</span>
+          <span id="mutation-jump-radius-value">3</span>
+          <input type="range" id="mutation-jump-radius-slider" min="1" max="20" step="1" value="3">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_elitism_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_elitism_legend_tooltip">?</span>
+        </legend>
+        <!-- Náhrada generace nad elitismem (spec 13.9) — jsou to dvě
+             nezávislé osy (viz tooltip u elite_count_label_tooltip a
+             section_elitism_legend_tooltip pro rozdíl), ale koncepčně
+             "kolik se toho vymění" dává smysl číst dřív než "co z toho
+             přežije navíc". -->
+        <label for="replacement-mode-select">
+          <span data-i18n="replacement_mode_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="replacement_mode_label_tooltip">?</span>
+          <select id="replacement-mode-select">
+            <option value="full" data-i18n="replacement_full"></option>
+            <option value="partial" data-i18n="replacement_partial"></option>
+          </select>
+        </label>
+        <label for="replacement-percent-slider"
+               data-show-when-select="replacement-mode-select" data-show-when-value="partial">
+          <span data-i18n="replacement_percent_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="replacement_percent_label_tooltip">?</span>
+          <span id="replacement-percent-value">50</span>
+          <input type="range" id="replacement-percent-slider" min="1" max="100" step="1" value="50">
+        </label>
+        <label for="elite-count-slider">
+          <span data-i18n="elite_count_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="elite_count_label_tooltip">?</span>
+          <span id="elite-count-value">0</span>
+          <input type="range" id="elite-count-slider" min="0" max="20" step="1" value="0">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
+          <span data-i18n="section_saveload_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_saveload_legend_tooltip">?</span>
+        </legend>
+        <!-- Reset na výchozí (spec 13.5) je logicky nejblíž save/load
+             kódu — stejně jako "načíst uložený stav", jen se místo dat z
+             cookie/odkazu použije DEFAULT_SETTINGS z js/save-load.js. -->
+        <span class="btn-with-help">
+          <button type="button" id="reset-defaults-btn" data-i18n="reset_defaults_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_defaults_btn_tooltip">?</span>
+        </span>
+        <label>
+          <input type="checkbox" id="saveload-include-board-checkbox">
+          <span data-i18n="saveload_include_board_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="saveload_include_board_label_tooltip">?</span>
+        </label>
+        <span class="btn-with-help">
+          <button type="button" id="save-cookie-btn" data-i18n="save_cookie_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="save_cookie_btn_tooltip">?</span>
+        </span>
+        <span class="btn-with-help">
+          <button type="button" id="load-cookie-btn" data-i18n="load_cookie_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="load_cookie_btn_tooltip">?</span>
+        </span>
+        <span class="btn-with-help">
+          <button type="button" id="clear-cookie-btn" data-i18n="clear_cookie_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="clear_cookie_btn_tooltip">?</span>
+        </span>
+        <span class="btn-with-help">
+          <button type="button" id="save-link-btn" data-i18n="save_link_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="save_link_btn_tooltip">?</span>
+        </span>
+        <label for="save-link-output">
+          <span data-i18n="save_link_output_label"></span>
+          <input type="text" id="save-link-output" readonly>
+        </label>
+        <p id="saveload-status-line"></p>
+      </fieldset>
+
+    </aside>
+  </main>
+
+  <!-- Pořadí scriptů je důležité: žádný build krok, sdílejí globální scope. -->
+  <!-- i18n musí být načtené první — slovníky a mechanika překladu, na které
+       se odkazují všechny ostatní moduly (statické texty i ty generované
+       za běhu v main.js). -->
+  <script src="js/i18n/cs.js"></script>
+  <script src="js/i18n/en.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/rng.js"></script>
+  <script src="js/genome.js"></script>
+  <script src="js/ga.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/fitness-chart.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/main.js"></script>
+  <!-- save-load.js záměrně poslední: potřebuje resetSimulation()/stopRunning()/
+       redraw() z main.js a nejdřív se má proběhnout výchozí resetSimulation()
+       z main.js, než ho tenhle skript případně přepíše daty z URL (spec 12.5). -->
+  <script src="js/save-load.js"></script>
+</body>
+</html>

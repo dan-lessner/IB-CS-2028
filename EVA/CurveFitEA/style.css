@@ -1,0 +1,330 @@
+/* CurveFitEA — základní vzhled stránky. Layout převzatý ze stejné osvědčené
+   konvence jako EvoMice (spec 14.2 — CSS Grid, ne flexbox, viz EvoMice
+   PROGRESS.md pro historii, proč): plocha (čtverec) + prostřední pruh
+   (ovládání běhu) + panel nastavení evoluce, responzivní landscape/portrait. */
+
+html, body {
+  height: 100%;
+}
+
+@media (orientation: portrait) {
+  html, body {
+    height: auto;
+    min-height: 100%;
+  }
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #1e1e24;
+  color: #e8e8ec;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+@media (orientation: portrait) {
+  body {
+    overflow: visible;
+  }
+}
+
+header {
+  padding: 1rem 1.5rem 0.5rem 1.5rem;
+  position: relative;
+}
+
+#lang-switcher {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+}
+
+#lang-switcher button {
+  background: #26262e;
+  color: #e8e8ec;
+  border: 1px solid #3a3a44;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  margin-left: 0.4rem;
+  cursor: pointer;
+}
+
+#lang-switcher button[aria-pressed="true"] {
+  background: #3a3a44;
+  font-weight: bold;
+  border-color: #6a6a78;
+}
+
+header h1 {
+  margin: 0;
+}
+
+header .subtitle {
+  margin: 0.25rem 0 0 0;
+  color: #a0a0ac;
+  font-size: 0.95rem;
+}
+
+main {
+  display: grid;
+  /* Výchozí (portrait/mobil): jeden sloupec, vše pod sebou, stránka roluje
+     přirozeně celá. Landscape (víc šířky než výšky) přepne na dva sloupce
+     beze scrollu stránky — viz media query níže. */
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  min-height: 0;
+}
+
+@media (orientation: landscape) {
+  main {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 1.5rem;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+/* simulation-wrapper drží plochu i prostřední pruh pohromadě — i jako jeden
+   požádaný element Fullscreen API (viz main.js). Portrait: sloupec (plocha
+   nahoře, prostřední pruh pod ní). Landscape: dva sloupce vedle sebe, plocha
+   první — dostane zbylou šířku/výšku jako čtverec. */
+#simulation-wrapper {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+@media (orientation: landscape) {
+  #simulation-wrapper {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+#simulation-wrapper.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #1e1e24;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+/* Plocha — co největší čtverec z dostupného místa. #canvas-area samo o sobě
+   nemá pevnou velikost (dostane ji grid sloupcem/řádkem výš), jen vycentruje
+   #canvas-container uvnitř sebe — skutečnou stranu čtverce dopočítává JS
+   (updateCanvasSize() v main.js). `overflow: auto`: při zoomu > 1 je
+   #canvas-container větší než #canvas-area, což samo vyvolá posuvníky pro
+   výřez. */
+#canvas-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid #3a3a44;
+  background: #101014;
+}
+
+@media (orientation: portrait) {
+  #canvas-area {
+    width: 100%;
+    aspect-ratio: 1;
+  }
+}
+
+#canvas-container {
+  display: inline-block;
+}
+
+#sim-canvas {
+  display: block;
+}
+
+/* Prostřední pruh: ovládání běhu, zoom, fullscreen, informační řádky —
+   mezi plochou a panelem nastavení, nikdy přes ně. */
+#middle-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+#middle-panel > * {
+  min-width: 0;
+}
+
+@media (orientation: landscape) {
+  #middle-panel {
+    overflow-y: auto;
+    /* Bez explicitního overflow-x by CSS spec (kombinace "visible" s jinou
+       hodnotou na druhé ose) tiše změnilo i tuhle osu na "auto" — nechtěný
+       vodorovný scrollbar i když obsah nikdy nepotřebuje šířku navíc
+       (ověřeno screenshotem). */
+    overflow-x: hidden;
+  }
+}
+
+#run-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+#run-controls .btn-with-help {
+  display: block;
+}
+
+#run-controls .btn-with-help button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+#zoom-control,
+#speed-control,
+#seed-control {
+  display: block;
+  font-size: 0.9rem;
+}
+
+#zoom-control input[type="range"],
+#speed-control input[type="range"] {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+#seed-control input[type="number"] {
+  width: 5em;
+}
+
+#controls {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden; /* stejný důvod jako #middle-panel výš */
+  background: #26262e;
+  border: 1px solid #3a3a44;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+#controls fieldset {
+  border: 2px solid #4a4a58;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem 0.75rem 0.75rem;
+}
+
+#controls legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: bold;
+  padding: 0 0.3rem;
+}
+
+.btn-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+.btn-with-help button {
+  margin: 0;
+}
+
+/* --- Tooltip ikonky ("?" v kroužku) --------------------------------------
+   Čistě CSS bublina: text je v atributu data-tooltip (naplní ho i18n.js) a
+   zobrazí se přes ::after / content: attr(...). */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  border: 1px solid #6a6a78;
+  color: #c8c8d0;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: help;
+  position: relative;
+  user-select: none;
+}
+
+.help-icon:hover,
+.help-icon:focus {
+  outline: none;
+  border-color: #e8b84b;
+  color: #e8b84b;
+}
+
+.help-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: 135%;
+  transform: translateX(-50%);
+  background: #101014;
+  border: 1px solid #3a3a44;
+  color: #e8e8ec;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  z-index: 20;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.help-icon:hover::after,
+.help-icon:focus::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+#controls label {
+  display: block;
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+#controls input[type="range"] {
+  width: 100%;
+}
+
+#controls button {
+  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+#stats-line {
+  font-family: monospace;
+  color: #a0a0ac;
+  margin: 0.5rem 0 0 0;
+}
+
+#cursor-position-line,
+#highlighted-curve-line {
+  font-family: monospace;
+  color: #a0a0ac;
+  margin: 0.2rem 0 0 0;
+}
