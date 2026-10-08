@@ -1,1 +1,0 @@
-Bob je GAy a nevi co dela
