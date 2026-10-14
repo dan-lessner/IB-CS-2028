@@ -1,47 +1,24 @@
-
-def prefix_infix(prefix):
-    stack = []
-    for a in reversed(prefix):
-        if a in ["+", "-", "*", "/", "^"]:
-            opt1 = stack.pop()
-            opt2 = stack.pop()
-            sub_expr = f"({opt1} {a} {opt2})"
-            stack.append(sub_expr)
-        else:
-            stack.append(a)
-    if len(stack) == 1:
-        return stack[0]
-    else:
-        return "Error, invalid structure"
-prefix_imp = input().split()
-print(prefix_infix(prefix_imp))
-
-
-def prefix_infix(prefix_list):
+def prefix_to_infix(prefix_expr):
+    operators = {'+', '-', '*', '/', '^'}
     stack = []
     
-    for a in reversed(prefix_list):
-        if a in ["+", "-", "*", "/", "^"]:
-            # SAFE CHECK: Check if we have at least 2 items to pop
-            if len(stack) < 2:
-                print(f"\n❌ Error broken at operator: '{a}'")
-                print(f"Current Stack state: {stack}")
-                return "Error: Invalid prefix expression structure (not enough operands)."
-                
-            opt1 = stack.pop()
-            opt2 = stack.pop()
-            sub_expr = f"({opt1} {a} {opt2})"
-            stack.append(sub_expr)
-        else:
-            stack.append(a)
-            
-    if len(stack) == 1:
-        return stack[0]
-    else:
-        print(f"\n❌ Error: Leftover items on stack: {stack}")
-        return "Error: Invalid prefix expression structure (too many operands)."
+    # Step 3: Scan the expression from right to left (reverse order)
+    # Splitting by spaces allows for multi-character operands (like numbers)
+    # If it's a tight string like "*+AB", we can iterate character by character
+    tokens = prefix_expr.split() if ' ' in prefix_expr else list(prefix_expr)
+    
+    for token in reversed(tokens):
+        # If token is an operand, push it to the stack
+        if token not in operators:
+            stack.append(token)
 
-# Take input and split by spaces
-prefix_imp = input("Enter prefix expression: ").split()
-print("\nResult:")
-print(prefix_infix(prefix_imp))
+        else:
+            operand1 = stack.pop()
+            operand2 = stack.pop()
+            # Form the infix sub-expression with parentheses
+            infix_sub_expr = f"({operand1} {token} {operand2})"
+            stack.append(infix_sub_expr)
+            
+    #The remaining item in the stack is the final infix expression
+    return stack[0]
+
