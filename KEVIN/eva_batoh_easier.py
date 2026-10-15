@@ -24,7 +24,7 @@ pocet_predmetu = len(hmotnosti)
 
 # nastaveni evoluce
 velikost_populace = 32
-pocet_generaci = 200000
+pocet_generaci = 20000
 delka_DNA = pocet_predmetu
 pst_mutace = 1/delka_DNA
 

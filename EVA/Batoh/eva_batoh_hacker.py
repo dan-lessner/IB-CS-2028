@@ -48,6 +48,6 @@ for plonkova_promenna in range(pocet_generaci) :
     list(map(mutuj, populace))
     
 ### vypis vysledku
-vitez = max (populace, fitness) 
+vitez = max(populace, key=fitness)
 print ("vitez: ", vitez)
 print ("fitness: ", fitness(vitez), ", cena: ", ss(vitez, ceny), ", hmotnost: ", ss(vitez, hmotnosti))
