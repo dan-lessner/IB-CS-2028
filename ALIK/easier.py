@@ -85,24 +85,26 @@ for plonkova_promenna in range( pocet_generaci ) :
     prezivsi = []    
     for i in range( 0, len(populace), 2 ) :
         if fitness(populace[i]) >= fitness(populace[i+1]) :
-            prezivsi = prezivsi + [ populace[i]   ]
+            prezivsi = prezivsi + [ list(populace[i])   ]
         else :
-            prezivsi = prezivsi + [ populace[i+1] ]
+            prezivsi = prezivsi + [ list(populace[i+1]) ]
     # krizeni
     krizenci = []
-    for i in range( 0, len(prezivsi), 2 ) :
-        krizenci = krizenci + zkriz(prezivsi[i], prezivsi[i+1])
+    for i in range( 0, len(prezivsi) ) :
+        partner = (i + 1) % len(prezivsi)
+        krizenci = krizenci + zkriz(prezivsi[i], prezivsi[partner])
     # slozeni dalsi generace: vitezove turnaju a jejich deti
-    populace = prezivsi + krizenci  # kontrolni otazka: jaka je velikost populace po tomto kroku? Je to spravne?
+    populace = krizenci  # kontrolni otazka: jaka je velikost populace po tomto kroku? Je to spravne?
     # mutace
     for jedinec in populace :
         mutuj(jedinec)
     
 ### vypis vysledku
-F = 0
+F = -1
 nejlepsi_jedinec = None
 for j in populace :
     if fitness(j) > F :
+        F = fitness(j)
         nejlepsi_jedinec = j
 print ("vitez: ", nejlepsi_jedinec)
 print ("fitness: ", fitness(nejlepsi_jedinec),
