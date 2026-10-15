@@ -32,10 +32,10 @@ import random
 random.seed(0)
 
 ### pomocne funkce
-def novy_seznam( hodnota, pocet ) :
+def novy_seznam( hodnota, pocet ):
     seznam = []
-    for plonkova_promenna in range( pocet ) :
-        seznam = seznam + [hodnota]	
+    for i in range( pocet ):
+        seznam.append( hodnota )	
     return seznam
 
 def soucin_po_prvcich( A, B ):	## tzv. "skalarni soucin", ale to budete probirat az pozdeji
@@ -63,46 +63,57 @@ def zkriz( tata, mama ):
     dcera = novy_seznam( 0, delka_DNA )
     pozice_zkrizeni = random.randrange( delka_DNA )
     for i in range( pozice_zkrizeni ) :
-      synek[i] = tata[i]     
-      dcera[i] = mama[i]
+        synek[i] = tata[i]     
+        dcera[i] = mama[i]
     for i in range( pozice_zkrizeni, delka_DNA ) :
-      synek[i] = mama[i]
-      dcera[i] = tata[i]
+        synek[i] = mama[i]
+        dcera[i] = tata[i]
     return [synek, dcera]
 
 ### inicializace populace
 populace = []
-for plonkova_promenna in range( velikost_populace ) :
+for i in range( velikost_populace ) :
     miminko = novy_seznam( 0, delka_DNA )
-    for cislo_kodonu in range( delka_DNA ) :
-        miminko[cislo_kodonu] = random.randrange( 2 )
-    populace = populace + [ miminko ]
+    for j in range( delka_DNA ) :
+        miminko[j] = random.randrange( 2 )
+    populace.append( miminko )
+
+import matplotlib.pyplot as plt
+x = generace = []
+y = fitnessy = []
 
 ### evoluce
-for plonkova_promenna in range( pocet_generaci ) :
+for generace in range( pocet_generaci ) :
     # selekce - "turnajova"
     random.shuffle(populace)
     prezivsi = []    
     for i in range( 0, len(populace), 2 ) :
         if fitness(populace[i]) >= fitness(populace[i+1]) :
-            prezivsi = prezivsi + [ populace[i]   ]
+            prezivsi.append( list(populace[i]) )
         else :
-            prezivsi = prezivsi + [ populace[i+1] ]
+            prezivsi.append( list(populace[i+1]) )   
     # krizeni
     krizenci = []
-    for i in range( 0, len(prezivsi), 2 ) :
-        krizenci = krizenci + zkriz(prezivsi[i], prezivsi[i+1])
+    for i in range( 0, len(prezivsi) ) :
+        partner = (i + 1) % len(prezivsi)  # partnerem je dalsi jedinec v seznamu, posledni ma partnera prvniho
+        krizenci = krizenci + zkriz(prezivsi[i], prezivsi[partner])
     # slozeni dalsi generace: vitezove turnaju a jejich deti
-    populace = prezivsi + krizenci  # kontrolni otazka: jaka je velikost populace po tomto kroku? Je to spravne?
+    populace = krizenci  # kontrolni otazka: jaka je velikost populace po tomto kroku? Je to spravne?
     # mutace
     for jedinec in populace :
         mutuj(jedinec)
-    
+
+nejlepsi_fitness = max(fitness(j) for j in populace)
+prumerna_fitness = sum(fitness(j) for j in populace) / len(populace)
+
+print("Generace:", generace + 1, "Nejlepsi fitness:", nejlepsi_fitness, "Prumerna fitness:", round(prumerna_fitness, 2))
+
 ### vypis vysledku
 F = 0
 nejlepsi_jedinec = None
 for j in populace :
     if fitness(j) > F :
+        F = fitness(j)
         nejlepsi_jedinec = j
 print ("vitez: ", nejlepsi_jedinec)
 print ("fitness: ", fitness(nejlepsi_jedinec),
