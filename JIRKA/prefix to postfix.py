@@ -13,3 +13,6 @@ for token in reversed(prefix):
         postfix_stack.append(token)
     
 print("postfix:", postfix_stack)
+
+
+# O(n**2)
