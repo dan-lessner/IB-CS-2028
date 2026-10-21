@@ -84,3 +84,4 @@ if __name__ == "__main__":
 
 # should be lienar - O(n)
 # O(n)
+# O(n)
