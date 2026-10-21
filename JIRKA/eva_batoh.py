@@ -79,8 +79,13 @@ for i in range( velikost_populace ) :
     populace.append( miminko )
 
 import matplotlib.pyplot as plt
-x = generace = []
-y = fitnessy = []
+DPI = 100
+width_px = 600
+height_px = 400
+width_in = width_px / DPI
+height_in = height_px / DPI
+x = generacex = [1 + i for i in range(pocet_generaci)]
+y = fitnessy = [ sum(fitness(j) for j in populace) / len(populace) for _ in range(pocet_generaci) ]
 
 ### evoluce
 for generace in range( pocet_generaci ) :
