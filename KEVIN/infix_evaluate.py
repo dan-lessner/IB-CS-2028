@@ -110,3 +110,5 @@ if __name__ == "__main__":
         print("Result:", evaluate_infix(expression))
     except (ValueError, ZeroDivisionError, OverflowError) as error:
         print("Error:", error)
+
+# should be lienar - O(n)

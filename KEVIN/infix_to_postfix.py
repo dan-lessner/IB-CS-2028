@@ -81,3 +81,5 @@ if __name__ == "__main__":
         print("Postfix:", infix_to_postfix(expression))
     except ValueError as error:
         print("Error:", error)
+
+# should be lienar - O(n)
