@@ -81,3 +81,5 @@ def rewrite(tokens):
 
 
 print(" ".join(rewrite(tokenize(expression))))
+
+# O(n**2)
