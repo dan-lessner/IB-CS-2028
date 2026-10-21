@@ -15,7 +15,7 @@ def prefix_to_infix(prefix_expr):
     return stack[0] if stack else ""
 
 if __name__ == "__main__":
-    prefix = "* + A B - C D"
+    prefix = input("Prefix: ")
     infix = prefix_to_infix(prefix)
     print(f"Prefix Expression: {prefix}")
     print(f"Infix Expression:  {infix}")
